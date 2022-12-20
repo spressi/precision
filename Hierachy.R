@@ -2,7 +2,7 @@ library(tidyverse)
 library(apa)
 
 sd.trial1 = 500 #sd of random noise on trial-level (i.e. imprecision of the measurement device)
-sd.trial2 = 100 #lower sd = more precise measurement
+sd.trial2 = 250 #lower sd = more precise measurement
 
 sd.subjects = 50  #standard deviation of sample
 m = 500 #arbitrary population mean (even though it may be more plausible that smaller sd is related to smaller mean)
@@ -72,15 +72,19 @@ hierarchy %>% group_by(sample) %>% summarise(M = mean(x.m),           #should be
                                              SD = sd(x.m),            #should be ~ sd.subjects
                                              SE = se(x.m),            #should be ~ sd.subjects / sqrt(c(subject.n1, subject.n2, subject.n1, subject.n1))
                                              SE.subject = mean(x.se), #should be ~ c(rep(sd.trial1, 3), sd.trial2) / sqrt(c(trial.n1, trial.n1, trial.n2, trial.n1))
-                                             precision.subject = 1 / SE.subject,
                                              precision.group = 1 / SE,  
+                                             precision.subject = 1 / SE.subject,
                                              reliability = cor(x.odd, x.even))
-#TODO conclusion
+#more subjects increase group-level precision but not subject-level precision or reliability
+#more trials & higher measurement precision carry on to increase group-level precision while boosting subject-level precision & reliability
+#(but benefit on group-level depends on within-subject variability, i.e., sd.trial)
+# => plot to see relative benefits
 
 #visualization (cf. Figure 2)
-hierarchy %>% 
-  ggplot(aes(x = x.odd, y = x.even)) + 
+hierarchy %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>% 
+  ggplot(aes(x = x.odd, y = x.even, color = x.rank)) + 
   geom_errorbar(aes(ymin=x.even - x.se.even, ymax=x.even + x.se.even)) +
   geom_errorbarh(aes(xmin=x.odd - x.se.odd, xmax=x.odd + x.se.odd)) +
   geom_point() + geom_smooth(method="lm") + 
-  facet_wrap(vars(sample), nrow=2) + theme_bw()
+  facet_wrap(vars(sample), nrow=2) + 
+  scale_color_viridis_c() + theme_bw() + theme(legend.position = "none")
