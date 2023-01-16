@@ -55,11 +55,11 @@ joined %>% group_by(sample) %>% summarise(M = mean(x.m),           #should be ~ 
                                           SE.subject = mean(x.se), #should be ~ sd.trial / sqrt(trial.n)
                                           precision.subject = 1 / SE.subject,
                                           precision.group = 1 / SE,  
-                                          reliability = cor(x.odd, x.even))
+                                          reliability = cor(x.odd, x.even)) %>% arrange(desc(sample))
 #looking at last 3 columns:
 #at constant subject-level precision:
-#heterogenous samples optimize reliability at the cost of group-level precision
 #homogenous samples optimize group-level precision at the cost of reliability
+#heterogenous samples optimize reliability at the cost of group-level precision
 
 #visualization (cf. Figure 2)
 joined %>% group_by(sample) %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>% 

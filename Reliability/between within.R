@@ -33,24 +33,28 @@ sample22 = m.subjects2 %>% lapply(function(x) {x + rnorm(trial.n, sd=sd.trial2)}
 sample11.m = sample11 %>% group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                                           x.odd = x %>% odd() %>% mean(), 
                                                           x.even = x %>% even() %>% mean(),
+                                                          x.sd = sd(x),
                                                           x.se = se(x),
                                                           x.se.odd = x %>% odd() %>% se(),
                                                           x.se.even = x %>% even() %>% se())
 sample12.m = sample12 %>% group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                                           x.odd = x %>% odd() %>% mean(), 
                                                           x.even = x %>% even() %>% mean(),
+                                                          x.sd = sd(x),
                                                           x.se = se(x),
                                                           x.se.odd = x %>% odd() %>% se(),
                                                           x.se.even = x %>% even() %>% se())
 sample21.m = sample21 %>% group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                                           x.odd = x %>% odd() %>% mean(), 
                                                           x.even = x %>% even() %>% mean(),
+                                                          x.sd = sd(x),
                                                           x.se = se(x),
                                                           x.se.odd = x %>% odd() %>% se(),
                                                           x.se.even = x %>% even() %>% se())
 sample22.m = sample22 %>% group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                                           x.odd = x %>% odd() %>% mean(), 
                                                           x.even = x %>% even() %>% mean(),
+                                                          x.sd = sd(x),
                                                           x.se = se(x),
                                                           x.se.odd = x %>% odd() %>% se(),
                                                           x.se.even = x %>% even() %>% se())
@@ -63,13 +67,17 @@ betweenWithin = sample21.m %>% mutate(between = "high", within = "low") %>% #hig
   mutate(between = between %>% as_factor(), within = within %>% as_factor())
 
 betweenWithin %>% group_by(between, within) %>% 
-  summarise(M = mean(x.m),           #should be ~ m
-            SD = sd(x.m),            #should be ~ sd.subjects
-            SE = se(x.m),            #should be ~ sd.subjects / sqrt(c(subject.n1, subject.n2, subject.n1, subject.n1))
+  summarise(n.subjects = n(),
+            n.trials = trial.n,
+            M = mean(x.m),           #should be ~ m
+            SD.subject = mean(x.sd), #should be ~ c(rep(sd.trial1, 3), sd.trial2)
             SE.subject = mean(x.se), #should be ~ c(rep(sd.trial1, 3), sd.trial2) / sqrt(c(trial.n1, trial.n1, trial.n2, trial.n1))
+            SD.total = sd(x.m),      #should be ~ sd.subjects
+            SE.total = se(x.m),      #should be ~ sd.subjects / sqrt(c(subject.n1, subject.n2, subject.n1, subject.n1))
             precision.subject = 1 / SE.subject,
-            precision.group = 1 / SE,  
-            reliability = cor(x.odd, x.even))
+            precision.group = 1 / SE.total,  
+            reliability = cor(x.odd, x.even)) %>% 
+  select(between, within, M, contains("SD."), contains("SE."), contains("precision"), reliability)
 #reliability is best at high between-subject variance (i.e., sample heterogeneity) plus low within-subject variability
 #it is medium, when both between- and within-subject variance are high or low
 #but it is worst if samples are homogenous but intra-individual variability is high.

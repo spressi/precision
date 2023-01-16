@@ -31,6 +31,7 @@ sample.baseline = #imprecise measurement, few subjects, few trials
   group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                   x.odd = x %>% odd() %>% mean(), 
                                   x.even = x %>% even() %>% mean(),
+                                  x.sd = sd(x),
                                   x.se = se(x),
                                   x.se.odd = x %>% odd() %>% se(),
                                   x.se.even = x %>% even() %>% se())
@@ -40,6 +41,7 @@ sample.subjects = #imprecise measurement, many subjects, few trials
   group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                   x.odd = x %>% odd() %>% mean(), 
                                   x.even = x %>% even() %>% mean(),
+                                  x.sd = sd(x),
                                   x.se = se(x),
                                   x.se.odd = x %>% odd() %>% se(),
                                   x.se.even = x %>% even() %>% se())
@@ -49,6 +51,7 @@ sample.trials = #imprecise measurement, few subjects, many trials
   group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                   x.odd = x %>% odd() %>% mean(), 
                                   x.even = x %>% even() %>% mean(),
+                                  x.sd = sd(x),
                                   x.se = se(x),
                                   x.se.odd = x %>% odd() %>% se(),
                                   x.se.even = x %>% even() %>% se())
@@ -58,21 +61,26 @@ sample.measurement = #precise measurement, few subjects, few trials
   group_by(subject) %>% summarise(x.m = mean(x), #calculate subject-level means from simulated trial-data
                                   x.odd = x %>% odd() %>% mean(), 
                                   x.even = x %>% even() %>% mean(),
+                                  x.sd = sd(x),
                                   x.se = se(x),
                                   x.se.odd = x %>% odd() %>% se(),
                                   x.se.even = x %>% even() %>% se())
 
 
-hierarchy = sample.baseline %>% mutate(sample = "baseline") %>% 
-  bind_rows(sample.subjects %>% mutate(sample = "subjects")) %>%
-  bind_rows(sample.trials %>% mutate(sample = "trials")) %>% 
-  bind_rows(sample.measurement %>% mutate(sample = "measurement")) %>% mutate(sample = sample %>% as_factor())
+hierarchy = sample.baseline %>% mutate(sample = "baseline", n.trials = trial.n1) %>% 
+  bind_rows(sample.subjects %>% mutate(sample = "subjects", n.trials = trial.n1)) %>%
+  bind_rows(sample.trials %>% mutate(sample = "trials", n.trials = trial.n2)) %>% 
+  bind_rows(sample.measurement %>% mutate(sample = "measurement", n.trials = trial.n1)) %>% 
+  mutate(sample = sample %>% as_factor())
 
-hierarchy %>% group_by(sample) %>% summarise(M = mean(x.m),           #should be ~ m
-                                             SD = sd(x.m),            #should be ~ sd.subjects
-                                             SE = se(x.m),            #should be ~ sd.subjects / sqrt(c(subject.n1, subject.n2, subject.n1, subject.n1))
+hierarchy %>% group_by(sample) %>% summarise(n.subjects = n(),
+                                             n.trials = n.trials %>% mean(),
+                                             M = mean(x.m),           #should be ~ m
+                                             SD.subject = mean(x.sd), #should be ~ c(rep(sd.trial1, 3), sd.trial2)
                                              SE.subject = mean(x.se), #should be ~ c(rep(sd.trial1, 3), sd.trial2) / sqrt(c(trial.n1, trial.n1, trial.n2, trial.n1))
-                                             precision.group = 1 / SE,  
+                                             SD.total = sd(x.m),      #should be ~ sd.subjects #but is inflated by subject-level variance
+                                             SE.total = se(x.m),      #should be ~ sd.subjects / sqrt(c(subject.n1, subject.n2, subject.n1, subject.n1))
+                                             precision.group = 1 / SE.total,  
                                              precision.subject = 1 / SE.subject,
                                              reliability = cor(x.odd, x.even))
 #more subjects increase group-level precision but not subject-level precision or reliability

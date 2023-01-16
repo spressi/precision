@@ -77,7 +77,18 @@ ecg.plot = ecg %>% ggplot(aes(x=time, y=ECG)) +
   scale_x_continuous(expand = c(0, 0)) +
   ylab("ECG (mV)") + xlab("Time (sec)") + myGgTheme
 
-
+#zoomed in plot
+# peaks.zoom = peaks %>% filter(peak.time <= interpolated) %>% tail(3) %>% bind_rows(
+#   peaks %>% filter(peak.time >= interpolated) %>% head(1))
+peaks.zoom = peaks %>% transmute(time1 = peak.time, time2 = lead(peak.time)) %>% transmute(peak.time = rowMeans(.)) %>% 
+  filter(peak.time < 10) %>% tail(2)
+ecg.plot.zoom = ecg %>% filter(time > peaks.zoom$peak.time %>% min(), 
+                               time < peaks.zoom$peak.time %>% max()) %>% 
+                               #time < interpolated) %>% 
+  ggplot(aes(x=time, y=ECG)) + geom_line() + 
+  #scale_x_continuous(expand = c(0, 0)) +
+  theme_void() + theme(plot.background = element_rect(fill='white', color="purple", size=2))
+ecg.plot = ecg.plot + geom_rect(xmin=peaks.zoom$peak.time %>% min(), xmax=peaks.zoom$peak.time %>% max(), ymin=-1, ymax=1, color="purple", size=1, fill=NA)
 
 # calculate IBIs & HRV ----------------------------------------------------
 ibi = peaks %>% select(contains("peak.time")) %>% 
@@ -115,8 +126,13 @@ inlay = cowplot::ggdraw(ibi.plot.time + theme(legend.position="none") + scale_y_
 {cowplot::plot_grid(ecg.plot, 
                     ibi.plot.time + theme(legend.position="none") + scale_y_continuous(limits = c(NA, 1000)), 
                     ncol = 1, labels="AUTO", align="hv", axis="l") %>% 
-    cowplot::ggdraw() + cowplot::draw_plot(hrv.plot + theme(plot.background = element_rect(fill='transparent', color=NA)), 
-                                           x=.55, width=.45, y=.25, height=.2) +
+    cowplot::ggdraw() + #prepare adding overlays
+    #PQRST complex zoom
+    cowplot::draw_plot(ecg.plot.zoom, 
+                       x=.60, width=.25, y=.61, height=.2) +
+    #Panel C overlay
+    cowplot::draw_plot(hrv.plot + theme(plot.background = element_rect(fill='transparent', color=NA)), 
+                       x=.55, width=.45, y=.25, height=.2) +
     cowplot::draw_plot_label("C", x=.55, y=.5, hjust=1)} %>% 
   ggsave("ECG.png", plot=., device="png", width=1920/300, height=2*1080/300, dpi=300)
 
