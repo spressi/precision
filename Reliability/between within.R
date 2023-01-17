@@ -1,8 +1,8 @@
 library(tidyverse)
 library(apa)
 
-sd.subjects1 = 100 #low standard deviation of 1nd sample (i.e. homogenous)
-sd.subjects2 = 200 #high standard deviation of 2st sample (i.e. heterogenous)
+sd.subjects1 = 100 #low standard deviation of 1st sample (i.e. homogenous)
+sd.subjects2 = 200 #high standard deviation of 2nd sample (i.e. heterogenous)
 
 sd.trial1 = 200 #sd of random noise on trial-level (i.e. imprecision of the measurement device)
 sd.trial2 = 400 #higher sd = less precise measurement
