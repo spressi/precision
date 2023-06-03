@@ -4,6 +4,8 @@ sampling.rate = 500
 trials = 160
 pause = 48.5
 
+se = function(x, na.rm = FALSE) { sd(x, na.rm) / sqrt(if(na.rm==F) length(x) else sum(is.na(x)==F)) }
+
 eda = read.table("eda.txt", sep="\t", col.names=c("EDA", "ECG", "Trigger", "empty"), na.strings="", skip=15) %>% 
   select(EDA, Trigger) %>% tibble() %>% 
   mutate(sample = 1:n(),
@@ -40,12 +42,20 @@ eda.us.plot = eda.plot %>% full_join(US_start %>% select(trial.us, sample), by="
   group_by(trial.us) %>% mutate(trialTime.us = time - min(time)) %>% ungroup() %>% 
   filter(trialTime.us <= 7)
 eda.us.scl = eda.us.plot %>% filter(trialTime.us < 1) %>% 
-  group_by(trial.us) %>% summarise(SCL = mean(EDA))
+  group_by(trial.us) %>% summarise(SCL = mean(EDA), SCL.precision.trial = 1/se(EDA))
 eda.us.bl = eda.us.plot %>% full_join(eda.us.scl, by="trial.us") %>% mutate(EDA.bl = EDA - SCL)
-eda.us.scr = eda.us.bl %>% group_by(trial.us) %>% summarise(SCR = max(EDA.bl)) %>% full_join(eda.us.scl, by="trial.us") %>% 
+eda.us.scr = eda.us.bl %>% group_by(trial.us) %>% summarise(SCR = max(EDA.bl)) %>% 
+  full_join(eda.us.scl, by="trial.us") %>% 
   left_join(eda.us.bl %>% select(trial, trial.us) %>% unique() %>% group_by(trial.us) %>% filter(trial == min(trial)), by="trial.us")
 pause.us = eda.us.scr %>% filter(trial < pause) %>% pull(trial.us) %>% max() %>% {. + .5}
 eda.us.scr = eda.us.scr %>% mutate(phase = ifelse(trial.us < pause.us, "first", "second") %>% as_factor())
+
+
+# Precision ---------------------------------------------------------------
+eda.us.scr %>% summarise(SCR.precision.subject = 1/se(SCR), #subject-level precision of SCR
+                         SCL.precision.subject = 1/se(SCL), #subject-level precision of SCL
+                         SCL.precision.trial_avg = mean(SCL.precision.trial)) #AVERAGE trial-level precision of SCL
+#no trial-level precision of SCR because it is not a trial-level aggregate of the data
 
 
 # Plots -------------------------------------------------------------------
@@ -101,11 +111,11 @@ eda.ucr = eda.us.plot %>% ggplot(aes(x = trialTime.us, y = EDA, color=trial.us, 
   ylab("EDA (µS)") + xlab("Trial Time (sec)") + labs(color = "Trial")
 eda.ucr
 
-#Baseline-corrected UCR
+#Baseline-corrected UCR (not used for Figure)
 eda.ucr.bl = eda.us.bl %>% ggplot(aes(x = trialTime.us, y = EDA.bl, color=trial.us, group=trial.us)) +
   geom_path() + scale_color_viridis_c(trans = "reverse") + myGgTheme +
   ylab("BL-corrected EDA (µS)") + xlab("Experiment Time (sec)") + labs(color = "Trial")
-eda.ucr
+eda.ucr.bl
 
 #Panel B: SCL
 #eda.scl = eda.us.scr %>% ggplot(aes(x = trial.us, y = SCL, color=trial.us)) +
@@ -123,7 +133,7 @@ eda.scr = eda.us.scr %>% ggplot(aes(x = trial.us, y = SCR, color=trial.us, group
   ylab("SCR (µS)") + xlab("Trial") + theme(legend.position = "none") #+ labs(color = "Trial")
 eda.scr
 
-#SCR x SCL
+#SCR x SCL (not used for Figure)
 eda.us.scr %>% ggplot(aes(x = SCR, y = SCL, color=phase, group=phase)) +
   geom_smooth(method="lm") + geom_point() + myGgTheme
 
