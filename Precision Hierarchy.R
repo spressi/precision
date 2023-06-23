@@ -130,8 +130,11 @@ cowplot::plot_grid(hierarchy.summary %>% mutate(colorCode = scale01(precision.su
                      theme(axis.text.x = element_text(angle = 45, hjust=1), axis.title.x=element_blank()) +
                      #scale_fill_viridis_c(),
                      scale_fill_gradient(low="red", high="darkgreen"),
-                   nrow=1)
+                   cowplot::get_legend(hierarchy.summary %>% mutate(colorCode = scale01(precision.subject)) %>% ggplot(aes(x=sample, y=precision.group, fill=colorCode)) + geom_point() + theme_bw() +
+                     scale_fill_continuous("", labels=c("worst", "best"), type="gradient", low="red", high="darkgreen", breaks=function(limits) { c(min(limits), max(limits)) })),
+                   nrow=1, rel_widths = c(1, 1, 1, .4))
 #ggsave(filename="Precision Hierarchy.png", device="png", dpi=300, units="in", width=1920/300, height = 1080/300)
+#ggsave(filename="Precision Hierarchy.jpg", device="jpg", dpi=300, units="in", width=1920/300, height = 1080/300)
 
 #scatter plots (cf. Figure 2)
 hierarchy %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>% 
@@ -142,3 +145,19 @@ hierarchy %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>%
   geom_point() + geom_smooth(method="lm") + 
   scale_color_viridis_c() + theme_bw() + theme(legend.position = "none")
 #ggsave(filename="Precision Hierarchy Scatter.png", device="png", dpi=300, units="in", width=1920/300, height = 1080/300)
+
+
+## Visualization: With and without precision
+# hierarchy %>% filter(sample == "baseline") %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>% 
+#   ggplot(aes(x = x.odd, y = x.even, color = x.rank)) + 
+#   geom_point() + geom_smooth(method="lm", se=F) + 
+#   scale_color_viridis_c() + theme_bw() + theme(legend.position = "none") + lims(x=c(50, 950), y=c(50, 950))
+# ggsave(filename="Scatter Example (no precision).png", device="png", dpi=300, units="in", width=1920/300, height = 1080/300)
+# 
+# hierarchy %>% filter(sample == "baseline") %>% mutate(x.rank = x.m %>% rank() %>% {-.}) %>% 
+#   ggplot(aes(x = x.odd, y = x.even, color = x.rank)) + 
+#   geom_errorbar(aes(ymin=x.even - x.se.even, ymax=x.even + x.se.even)) +
+#   geom_errorbarh(aes(xmin=x.odd - x.se.odd, xmax=x.odd + x.se.odd)) +
+#   geom_point() + geom_smooth(method="lm") + 
+#   scale_color_viridis_c() + theme_bw() + theme(legend.position = "none") + lims(x=c(50, 950), y=c(50, 950))
+# ggsave(filename="Scatter Example (with precision).png", device="png", dpi=300, units="in", width=1920/300, height = 1080/300)
